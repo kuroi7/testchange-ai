@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { TestCase } from "../types";
-import { AnalyzerError, openAIAnalyze } from "./openai";
+import { openAIAnalyze } from "./openai";
 
 const testCase: TestCase = {
   id: "TC-1",
@@ -19,7 +19,7 @@ function successResponse(results: unknown) {
 
 describe("openAIAnalyze", () => {
   it("returns validated results and sends structured-output configuration", async () => {
-    const fetchMock = vi.fn(async () =>
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
       successResponse([
         {
           testCaseId: "TC-1",
@@ -41,17 +41,17 @@ describe("openAIAnalyze", () => {
     expect(results[0]).toMatchObject({ id: "TC-1", impact: "high" });
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
-    const init = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+    const init = fetchMock.mock.calls[0]?.[1];
     expect(init).toBeDefined();
     const body = JSON.parse(String(init?.body));
     expect(body.store).toBe(false);
     expect(body.text.format.type).toBe("json_schema");
     expect(body.instructions).toContain("UNTRUSTED DATA");
-    expect(String(init?.headers)).not.toContain("test-key");
+    expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer test-key");
   });
 
   it("rejects output that omits or invents test case IDs", async () => {
-    const fetchMock = vi.fn(async () =>
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
       successResponse([
         {
           testCaseId: "TC-OTHER",
@@ -69,11 +69,13 @@ describe("openAIAnalyze", () => {
         fetchImpl: fetchMock as unknown as typeof fetch,
         retryDelayMs: 0,
       }),
-    ).rejects.toMatchObject<Partial<AnalyzerError>>({ code: "invalid_output" });
+    ).rejects.toMatchObject({ code: "invalid_output" });
   });
 
   it("retries transient provider errors once and then fails safely", async () => {
-    const fetchMock = vi.fn(async () => new Response("temporary failure", { status: 503 }));
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      new Response("temporary failure", { status: 503 }),
+    );
 
     await expect(
       openAIAnalyze("Change", [testCase], {
@@ -82,14 +84,14 @@ describe("openAIAnalyze", () => {
         fetchImpl: fetchMock as unknown as typeof fetch,
         retryDelayMs: 0,
       }),
-    ).rejects.toMatchObject<Partial<AnalyzerError>>({ code: "provider" });
+    ).rejects.toMatchObject({ code: "provider" });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("maps abort errors to a timeout error", async () => {
     const abortError = Object.assign(new Error("aborted"), { name: "AbortError" });
-    const fetchMock = vi.fn(async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit): Promise<Response> => {
       throw abortError;
     });
 
@@ -100,7 +102,7 @@ describe("openAIAnalyze", () => {
         fetchImpl: fetchMock as unknown as typeof fetch,
         retryDelayMs: 0,
       }),
-    ).rejects.toMatchObject<Partial<AnalyzerError>>({ code: "timeout" });
+    ).rejects.toMatchObject({ code: "timeout" });
   });
 
   it("enforces the configured maximum number of test cases", async () => {
@@ -110,6 +112,6 @@ describe("openAIAnalyze", () => {
         model: "gpt-5.6-terra",
         maxCases: 1,
       }),
-    ).rejects.toMatchObject<Partial<AnalyzerError>>({ code: "input" });
+    ).rejects.toMatchObject({ code: "input" });
   });
 });
