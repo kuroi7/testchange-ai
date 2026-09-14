@@ -1,0 +1,6 @@
+ID,Title,Preconditions,Steps,Expected Result
+TC-001,Apply coupon,User has a valid coupon,"Add item to cart; apply coupon; proceed to checkout",Coupon discount is applied
+TC-002,Use loyalty points,User has sufficient loyalty points,"Add item to cart; apply loyalty points; proceed to checkout",Points are deducted and discount is applied
+TC-003,Coupon and points cannot be combined,User has a valid coupon and loyalty points,"Add item to cart; apply coupon; attempt to apply points",Points cannot be applied while coupon is active
+TC-004,Checkout without discount,User has an item in cart,"Proceed to checkout without applying coupon or points",Order total is unchanged
+TC-005,Invalid coupon,User has an expired coupon,"Add item to cart; apply expired coupon",Coupon is rejected with an error message
