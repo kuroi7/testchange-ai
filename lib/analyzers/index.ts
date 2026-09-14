@@ -25,7 +25,7 @@ export async function analyzeChange(change: string, testCases: TestCase[]): Prom
   }
 
   if (provider === "openai") {
-    const model = (process.env.OPENAI_MODEL ?? "gpt-5.6-terra").trim();
+    const model = (process.env.OPENAI_MODEL ?? "gpt-5").trim();
     const results = await openAIAnalyze(change, testCases, {
       apiKey: process.env.OPENAI_API_KEY,
       model,
