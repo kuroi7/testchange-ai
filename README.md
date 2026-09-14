@@ -45,10 +45,12 @@ Configure the following as server-side environment variables. Never commit real 
 ```env
 ANALYZER_PROVIDER=openai
 OPENAI_API_KEY=<server-side secret>
-OPENAI_MODEL=gpt-5.6-terra
+OPENAI_MODEL=gpt-5
 OPENAI_ANALYSIS_TIMEOUT_MS=45000
 OPENAI_MAX_TEST_CASES=200
 ```
+
+`OPENAI_MODEL` must be a model available to the OpenAI API project associated with `OPENAI_API_KEY`. If OpenAI returns HTTP 404, verify model access for that API project and change this value to an available model.
 
 Without `ANALYZER_PROVIDER=openai`, the application intentionally uses Mock mode.
 
@@ -73,6 +75,8 @@ Recommended production setup:
 4. Deploy.
 5. Run the checklist in `docs/release-checklist.md` against the production URL before creating `v0.1.0`.
 
+After changing any production environment variable in Vercel, trigger a new production deployment so the new value is applied.
+
 ## Security and privacy
 
 - Provider API credentials are server-side only.
@@ -80,6 +84,7 @@ Recommended production setup:
 - The application validates structured AI output before returning results.
 - Production analysis requests disable provider-side storage where supported.
 - The first MVP does not require a database and does not intentionally persist uploaded test/spec content.
+- Provider diagnostics redact strings that resemble API credentials before they are shown.
 
 ## Known v0.1 limitations
 
