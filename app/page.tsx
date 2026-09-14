@@ -32,6 +32,8 @@ export default function Home() {
   const [results, setResults] = useState<AnalysisResult[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [analyzer, setAnalyzer] = useState<"mock" | "openai" | "">("");
+  const [model, setModel] = useState("");
 
   const summary = useMemo(() => {
     const counts = { high: 0, medium: 0, low: 0, none: 0 };
@@ -42,6 +44,8 @@ export default function Home() {
   async function onFile(file?: File) {
     setError("");
     setResults([]);
+    setAnalyzer("");
+    setModel("");
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
       setError("CSVは5MB以下にしてください。");
@@ -86,10 +90,12 @@ export default function Home() {
         body: JSON.stringify({ change, testCases }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "Analysis failed");
+      if (!response.ok) throw new Error(data.error ?? "解析に失敗しました。");
       setResults(data.results);
-    } catch {
-      setError("解析に失敗しました。入力を確認して再度お試しください。");
+      setAnalyzer(data.analyzer === "openai" ? "openai" : "mock");
+      setModel(typeof data.model === "string" ? data.model : "");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "解析に失敗しました。入力を確認して再度お試しください。");
     } finally {
       setLoading(false);
     }
@@ -153,7 +159,11 @@ export default function Home() {
               </tbody>
             </table>
           </div>
-          <p className="notice">現在はMock解析です。AIプロバイダ接続は次のIssueで実装します。</p>
+          <p className="notice">
+            {analyzer === "openai"
+              ? `AI解析を使用しています${model ? `（${model}）` : ""}。重要な変更は必ず人が確認してください。`
+              : "現在はMock解析です。本番AIを使うにはサーバー側でANALYZER_PROVIDER=openaiを設定してください。"}
+          </p>
         </section>
       )}
     </main>
