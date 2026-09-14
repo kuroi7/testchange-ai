@@ -77,6 +77,14 @@ type OpenAIResponseShape = {
   output?: unknown;
 };
 
+type OpenAIErrorShape = {
+  error?: {
+    message?: unknown;
+    type?: unknown;
+    code?: unknown;
+  };
+};
+
 function extractOutputText(payload: unknown): string | null {
   if (!payload || typeof payload !== "object") return null;
   const response = payload as OpenAIResponseShape;
@@ -112,10 +120,60 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function redactProviderDetail(value: string): string {
+  return value
+    .replace(/sk-[A-Za-z0-9_-]+/g, "[REDACTED]")
+    .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, "Bearer [REDACTED]")
+    .trim()
+    .slice(0, 300);
+}
+
+async function readProviderErrorDetail(response: Response): Promise<string | null> {
+  try {
+    const payload = (await response.clone().json()) as OpenAIErrorShape;
+    const error = payload?.error;
+    if (!error) return null;
+
+    const parts: string[] = [];
+    if (typeof error.message === "string" && error.message.trim()) {
+      parts.push(redactProviderDetail(error.message));
+    }
+    if (typeof error.type === "string" && error.type.trim()) {
+      parts.push(`type=${redactProviderDetail(error.type)}`);
+    }
+    if (typeof error.code === "string" && error.code.trim()) {
+      parts.push(`code=${redactProviderDetail(error.code)}`);
+    }
+
+    return parts.length > 0 ? parts.join(" / ") : null;
+  } catch {
+    return null;
+  }
+}
+
+async function buildProviderError(response: Response, model: string): Promise<AnalyzerError> {
+  const detail = await readProviderErrorDetail(response);
+
+  if (response.status === 404) {
+    const suffix = detail ? ` OpenAI: ${detail}` : "";
+    return new AnalyzerError(
+      "provider",
+      `AIモデル「${model}」が見つからないか、このAPIプロジェクトでは利用できません。Vercel の OPENAI_MODEL を利用可能なモデルに変更してください。${suffix}`,
+    );
+  }
+
+  const suffix = detail ? ` OpenAI: ${detail}` : "";
+  return new AnalyzerError(
+    "provider",
+    `AIプロバイダがHTTP ${response.status}を返しました。${suffix}`,
+  );
+}
+
 async function requestWithRetry(
   fetchImpl: FetchLike,
   init: RequestInit,
   retryDelayMs: number,
+  model: string,
 ): Promise<Response> {
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
@@ -125,7 +183,7 @@ async function requestWithRetry(
         await sleep(retryDelayMs);
         continue;
       }
-      throw new AnalyzerError("provider", `AIプロバイダがHTTP ${response.status}を返しました。`);
+      throw await buildProviderError(response, model);
     } catch (error) {
       if (error instanceof AnalyzerError) throw error;
       if (isAbortError(error)) {
@@ -199,6 +257,7 @@ export async function openAIAnalyze(
         }),
       },
       retryDelayMs,
+      model,
     );
 
     const payload: unknown = await response.json();

@@ -32,7 +32,7 @@ describe("openAIAnalyze", () => {
 
     const results = await openAIAnalyze("Coupons and points can now be combined.", [testCase], {
       apiKey: "test-key",
-      model: "gpt-5.6-terra",
+      model: "gpt-5",
       fetchImpl: fetchMock as unknown as typeof fetch,
       retryDelayMs: 0,
     });
@@ -65,11 +65,38 @@ describe("openAIAnalyze", () => {
     await expect(
       openAIAnalyze("Change", [testCase], {
         apiKey: "test-key",
-        model: "gpt-5.6-terra",
+        model: "gpt-5",
         fetchImpl: fetchMock as unknown as typeof fetch,
         retryDelayMs: 0,
       }),
     ).rejects.toMatchObject({ code: "invalid_output" });
+  });
+
+  it("returns a useful model-access message for provider 404 responses", async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      new Response(
+        JSON.stringify({
+          error: {
+            message: "The model `gpt-5.6-terra` does not exist or you do not have access to it.",
+            type: "invalid_request_error",
+            code: "model_not_found",
+          },
+        }),
+        { status: 404, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    await expect(
+      openAIAnalyze("Change", [testCase], {
+        apiKey: "test-key",
+        model: "gpt-5.6-terra",
+        fetchImpl: fetchMock as unknown as typeof fetch,
+        retryDelayMs: 0,
+      }),
+    ).rejects.toMatchObject({
+      code: "provider",
+      message: expect.stringContaining("gpt-5.6-terra"),
+    });
   });
 
   it("retries transient provider errors once and then fails safely", async () => {
@@ -80,7 +107,7 @@ describe("openAIAnalyze", () => {
     await expect(
       openAIAnalyze("Change", [testCase], {
         apiKey: "test-key",
-        model: "gpt-5.6-terra",
+        model: "gpt-5",
         fetchImpl: fetchMock as unknown as typeof fetch,
         retryDelayMs: 0,
       }),
@@ -98,7 +125,7 @@ describe("openAIAnalyze", () => {
     await expect(
       openAIAnalyze("Change", [testCase], {
         apiKey: "test-key",
-        model: "gpt-5.6-terra",
+        model: "gpt-5",
         fetchImpl: fetchMock as unknown as typeof fetch,
         retryDelayMs: 0,
       }),
@@ -109,7 +136,7 @@ describe("openAIAnalyze", () => {
     await expect(
       openAIAnalyze("Change", [testCase, { ...testCase, id: "TC-2" }], {
         apiKey: "test-key",
-        model: "gpt-5.6-terra",
+        model: "gpt-5",
         maxCases: 1,
       }),
     ).rejects.toMatchObject({ code: "input" });
