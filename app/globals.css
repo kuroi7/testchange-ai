@@ -1,0 +1,29 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Inter, system-ui, sans-serif; background: #f7f8fa; color: #17191d; }
+main { max-width: 1120px; margin: 0 auto; padding: 48px 24px 80px; }
+.hero { margin-bottom: 28px; }
+.eyebrow { display: inline-block; font-size: 14px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #5c667a; }
+h1 { font-size: clamp(34px, 6vw, 62px); line-height: 1.06; margin: 12px 0 18px; max-width: 900px; }
+.hero p { font-size: 18px; color: #555e70; max-width: 760px; }
+.panel { background: white; border: 1px solid #e5e8ee; border-radius: 20px; padding: 24px; box-shadow: 0 10px 35px rgba(25, 32, 46, .05); margin-top: 24px; }
+label { display: grid; gap: 10px; margin-bottom: 20px; }
+input[type=file], textarea { width: 100%; border: 1px solid #ccd2dc; border-radius: 12px; padding: 14px; background: #fff; font: inherit; }
+textarea:focus, input:focus { outline: 2px solid #9fb6ff; border-color: transparent; }
+button { border: 0; border-radius: 12px; padding: 12px 18px; font: inherit; font-weight: 700; cursor: pointer; background: #17191d; color: white; }
+button:disabled { opacity: .55; cursor: wait; }
+button.secondary { background: #eef1f6; color: #17191d; }
+small, .notice { color: #687386; }
+.error { color: #b42318; margin-top: 16px; }
+.resultHeader { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.summary { display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
+.summary span { background: #f1f3f6; border-radius: 999px; padding: 8px 12px; }
+.tableWrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 900px; }
+th, td { text-align: left; vertical-align: top; border-bottom: 1px solid #e8ebf0; padding: 12px 10px; }
+th { font-size: 13px; color: #667085; }
+.impact { display: inline-block; border-radius: 999px; padding: 4px 8px; font-size: 12px; font-weight: 700; background: #eef1f6; }
+.impact.high { background: #fee4e2; }
+.impact.medium { background: #fef0c7; }
+.impact.low { background: #e0f2fe; }
+.impact.none { background: #ecfdf3; }
+@media (max-width: 640px) { main { padding: 28px 16px 56px; } .panel { padding: 18px; border-radius: 16px; } .resultHeader { align-items: flex-start; flex-direction: column; } }
